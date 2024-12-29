@@ -97,16 +97,30 @@ class Home extends StatelessWidget {
                       ),
                       // On tap (anywhere except the button), navigate to Player
                       onTap: () async {
-                        controller.currentIndex.value =
-                            index; // Update current index
-                        Get.to(
-                          () => Player(
-                            filePath: filePath,
-                            fileName: fileName,
-                            artistName: randomArtist,
-                          ),
-                          transition: Transition.downToUp,
-                        );
+                        if (controller.currentPlaying.value == filePath &&
+                            controller.audioPlayer.playing) {
+                          // Navigate to player.dart without reloading the song
+                          Get.to(
+                            () => Player(
+                              filePath: filePath,
+                              fileName: fileName,
+                              artistName: randomArtist,
+                            ),
+                            transition: Transition.downToUp,
+                          );
+                        } else {
+                          // If a different song is selected, update and play it
+                          controller.currentIndex.value = index;
+                          await controller.playOrStop(filePath);
+                          Get.to(
+                            () => Player(
+                              filePath: filePath,
+                              fileName: fileName,
+                              artistName: randomArtist,
+                            ),
+                            transition: Transition.downToUp,
+                          );
+                        }
                       },
                       trailing: IconButton(
                         icon: Obx(() => Icon(

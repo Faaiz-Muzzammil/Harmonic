@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:music_player/views/home.dart';
+import 'package:music_player/views/landing_page.dart';
 
 void main() {
   runApp(MyApp());
@@ -12,15 +12,15 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return GetMaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Beats',
+      title: 'Harmonic',
       theme: ThemeData(
         fontFamily: "MyFont",
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
-          elevation: 0
-        )
+          elevation: 0,
+        ),
       ),
-      home: Home(),
+      home: const LandingPage(),
     );
   }
 }

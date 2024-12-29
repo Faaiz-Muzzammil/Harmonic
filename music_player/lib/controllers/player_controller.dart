@@ -1,6 +1,7 @@
 import 'package:get/get.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:flutter/material.dart';
 
 class PlayerController extends GetxController {
   var audioFiles = <String>[].obs; // List of audio file paths
@@ -21,11 +22,31 @@ class PlayerController extends GetxController {
       );
 
       if (result != null) {
-        audioFiles.addAll(result.paths.whereType<String>().toList());
+        // Filter valid file paths
+        final selectedFiles = result.paths.whereType<String>().toList();
+
+        for (var file in selectedFiles) {
+          final selectedFileName = file.split('/').last;
+
+          // Check for duplicates by file name
+          if (audioFiles.any((existingFile) =>
+              existingFile.split('/').last == selectedFileName)) {
+            // Show "Song Already Added!" message if duplicate is detected
+            Get.snackbar(
+              "Duplicate Song",
+              "Song Already Added!",
+              snackPosition: SnackPosition.BOTTOM,
+              duration: const Duration(seconds: 5),
+              backgroundColor: Colors.red.withOpacity(0.8),
+              colorText: Colors.white,
+            );
+          } else {
+            audioFiles.add(file); // Add non-duplicate files
+          }
+        }
         print("Songs added: $audioFiles");
         if (audioFiles.isNotEmpty) {
           _updateFileName(0); // Update the file name for the first song
-          await _playSongAtIndex(0); // Start playing the first song
         }
       }
     } catch (e) {
