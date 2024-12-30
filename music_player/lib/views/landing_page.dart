@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:music_player/views/home.dart';
+import 'package:music_player/controllers/mood_playlists.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -18,7 +18,6 @@ class _LandingPageState extends State<LandingPage>
   void initState() {
     super.initState();
 
-    // Initialize the animation controller and animation
     _controller = AnimationController(
       duration: const Duration(seconds: 2),
       vsync: this,
@@ -28,12 +27,10 @@ class _LandingPageState extends State<LandingPage>
       curve: Curves.easeInOut,
     );
 
-    // Start the animation
     _controller.forward();
 
-    // Navigate to the home page after a delay
     Future.delayed(const Duration(seconds: 3), () {
-      Get.off(() => Home(), transition: Transition.fadeIn);
+      Get.off(() => const MoodPlaylists(), transition: Transition.fadeIn);
     });
   }
 
@@ -52,8 +49,7 @@ class _LandingPageState extends State<LandingPage>
           opacity: _animation,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Animated App Name
+            children: const [
               Text(
                 "Harmonic",
                 style: TextStyle(
@@ -63,8 +59,7 @@ class _LandingPageState extends State<LandingPage>
                   fontFamily: "MyFont",
                 ),
               ),
-              const SizedBox(height: 16),
-              // Animated Subtitle or Tagline
+              SizedBox(height: 16),
               Text(
                 "Feel the Music",
                 style: TextStyle(

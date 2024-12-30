@@ -1,3 +1,4 @@
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:music_player/consts/colors.dart';
@@ -7,13 +8,18 @@ import 'package:music_player/views/player.dart';
 import 'dart:math';
 
 class Home extends StatelessWidget {
-  Home({super.key});
-
-  // Initialize the PlayerController once
-  final controller = Get.put(PlayerController(), permanent: true);
+  Home(
+      {super.key,
+      required String selectedMood,
+      required List<String> playlistSongs}) {
+    final controller = Get.put(PlayerController(), permanent: true);
+    controller.setMood(selectedMood); // Set mood in controller
+    controller.setPlaylistSongs(playlistSongs); // Set playlist songs
+  }
 
   @override
   Widget build(BuildContext context) {
+    final controller = Get.find<PlayerController>();
     final random = Random();
     final artistNames = [
       "Bruno Mars",
@@ -24,35 +30,45 @@ class Home extends StatelessWidget {
     ];
 
     return Scaffold(
-      backgroundColor: bgDarkColor,
+      backgroundColor: _getMoodThemeColor(controller.selectedMood.value),
       appBar: AppBar(
-        backgroundColor: bgDarkColor,
+        backgroundColor: _getMoodThemeColor(controller.selectedMood.value),
         actions: [
           IconButton(
             onPressed: () async {
-              await controller.selectAndAddAudioFiles();
+              final result = await FilePicker.platform.pickFiles(
+                type: FileType.audio,
+                allowMultiple: false,
+              );
+              if (result != null) {
+                final filePath = result.paths.first!;
+                await controller.addSongToCurrentMood(
+                    filePath); // Add song to mood playlist
+              }
             },
             icon: const Icon(Icons.add),
             color: whiteColor,
-          )
+          ),
         ],
         leading: const Icon(
           Icons.sort_rounded,
           color: whiteColor,
         ),
-        title: Text(
-          "Harmonic",
-          style: ourStyle(
-            family: "bold",
-            size: 18,
-          ),
-        ),
+        title: Obx(() => Text(
+              "${controller.selectedMood.value} Mood",
+              style: ourStyle(
+                family: "bold",
+                size: 18,
+              ),
+            )),
       ),
       body: Obx(() {
-        if (controller.audioFiles.isEmpty) {
+        final playlistSongs = controller.playlistSongs;
+
+        if (playlistSongs.isEmpty) {
           return Center(
             child: Text(
-              "No Song Found!",
+              "No Songs Found for ${controller.selectedMood.value} Mood!",
               style: ourStyle(),
             ),
           );
@@ -61,15 +77,14 @@ class Home extends StatelessWidget {
             padding: const EdgeInsets.all(8.0),
             child: ListView.builder(
               physics: const BouncingScrollPhysics(),
-              itemCount: controller.audioFiles.length,
+              itemCount: playlistSongs.length,
               itemBuilder: (BuildContext context, int index) {
-                final filePath = controller.audioFiles[index];
+                final filePath = playlistSongs[index];
                 final fileName = filePath.split('/').last;
                 final randomArtist =
                     artistNames[random.nextInt(artistNames.length)];
 
                 return Obx(() {
-                  // Check if the current song is playing
                   final isPlaying =
                       controller.currentPlaying.value == filePath &&
                           controller.audioPlayer.playing;
@@ -95,11 +110,9 @@ class Home extends StatelessWidget {
                         color: whiteColor,
                         size: 32,
                       ),
-                      // On tap (anywhere except the button), navigate to Player
                       onTap: () async {
                         if (controller.currentPlaying.value == filePath &&
                             controller.audioPlayer.playing) {
-                          // Navigate to player.dart without reloading the song
                           Get.to(
                             () => Player(
                               filePath: filePath,
@@ -109,7 +122,6 @@ class Home extends StatelessWidget {
                             transition: Transition.downToUp,
                           );
                         } else {
-                          // If a different song is selected, update and play it
                           controller.currentIndex.value = index;
                           await controller.playOrStop(filePath);
                           Get.to(
@@ -123,26 +135,15 @@ class Home extends StatelessWidget {
                         }
                       },
                       trailing: IconButton(
-                        icon: Obx(() => Icon(
-                              controller.currentPlaying.value == filePath &&
-                                      controller.audioPlayer.playing
-                                  ? Icons.pause
-                                  : Icons.play_arrow,
-                              color: whiteColor,
-                            )),
+                        icon: Icon(
+                          isPlaying ? Icons.pause : Icons.play_arrow,
+                          color: whiteColor,
+                        ),
                         onPressed: () async {
-                          // Play/Pause logic for this song directly
-                          if (controller.currentPlaying.value == filePath &&
-                              controller.audioPlayer.playing) {
+                          if (isPlaying) {
                             await controller.audioPlayer.pause();
-                            controller.isPlaying.value =
-                                false; // Explicitly update play state
                           } else {
                             await controller.playOrStop(filePath);
-                            controller.currentPlaying.value =
-                                filePath; // Update currentPlaying
-                            controller.isPlaying.value =
-                                true; // Explicitly update play state
                           }
                         },
                       ),
@@ -155,5 +156,20 @@ class Home extends StatelessWidget {
         }
       }),
     );
+  }
+
+  Color _getMoodThemeColor(String mood) {
+    switch (mood) {
+      case "Happy":
+        return Colors.redAccent;
+      case "Sad":
+        return Colors.blueAccent;
+      case "Relaxed":
+        return Colors.greenAccent;
+      case "Energetic":
+        return Colors.orangeAccent;
+      default:
+        return Colors.grey;
+    }
   }
 }

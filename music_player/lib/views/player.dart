@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:music_player/consts/colors.dart';
-import 'package:music_player/consts/text_style.dart';
 import 'package:music_player/controllers/player_controller.dart';
 import 'dart:math';
 
-class Player extends StatelessWidget {
+class Player extends StatefulWidget {
   final String filePath;
   final String fileName;
   final String artistName;
 
-  Player({
+  const Player({
     super.key,
     required this.filePath,
     required this.fileName,
     required this.artistName,
   });
 
+  @override
+  _PlayerState createState() => _PlayerState();
+}
+
+class _PlayerState extends State<Player> with TickerProviderStateMixin {
   final random = Random();
 
   // List of random icons
@@ -33,78 +36,166 @@ class Player extends StatelessWidget {
     Icons.anchor,
   ];
 
-  // List of random colors
-  final List<Color> randomColors = [
-    Colors.red,
-    Colors.blue,
-    Colors.green,
-    Colors.orange,
-    Colors.purple,
-    Colors.teal,
-    Colors.brown,
-    Colors.cyan,
-    Colors.amber,
-    Colors.pink,
-  ];
+  // Mood-based gradient colors
+  final Map<String, List<Color>> moodColors = {
+    "Happy": [Colors.yellow[700]!, Colors.orange[600]!, Colors.red[400]!],
+    "Sad": [Colors.blue[900]!, Colors.indigo[800]!, Colors.grey[700]!],
+    "Relaxed": [Colors.green[800]!, Colors.teal[700]!, Colors.cyan[600]!],
+    "Energetic": [Colors.red[800]!, Colors.purple[700]!, Colors.pink[600]!],
+    "Default": [Colors.grey[900]!, Colors.black87, Colors.blueGrey[700]!],
+  };
+
+  late AnimationController _iconController;
+  late AnimationController _buttonController;
+  late Animation<Color?> _iconStartColor;
+  late Animation<Color?> _iconEndColor;
+  late Animation<Color?> _buttonStartColor;
+  late Animation<Color?> _buttonEndColor;
+
+  late IconData currentIcon;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize random icon for the first song
+    currentIcon = randomIcons[random.nextInt(randomIcons.length)];
+
+    // Initialize AnimationControllers for gradients
+    _iconController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 5),
+    )..repeat(reverse: true);
+
+    _buttonController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+
+    // Set up animations for icon and button gradients
+    _setupAnimations();
+  }
+
+  void _setupAnimations() {
+    // Get the selected mood from the controller
+    final controller = Get.find<PlayerController>();
+    final selectedMood = controller.selectedMood.value;
+
+    // Get gradient colors based on the selected mood
+    final gradientColors = moodColors[selectedMood] ?? moodColors["Default"]!;
+
+    _iconStartColor = ColorTween(
+      begin: gradientColors[random.nextInt(gradientColors.length)],
+      end: gradientColors[random.nextInt(gradientColors.length)],
+    ).animate(_iconController);
+
+    _iconEndColor = ColorTween(
+      begin: gradientColors[random.nextInt(gradientColors.length)],
+      end: gradientColors[random.nextInt(gradientColors.length)],
+    ).animate(_iconController);
+
+    _buttonStartColor = ColorTween(
+      begin: gradientColors[random.nextInt(gradientColors.length)],
+      end: gradientColors[random.nextInt(gradientColors.length)],
+    ).animate(_buttonController);
+
+    _buttonEndColor = ColorTween(
+      begin: gradientColors[random.nextInt(gradientColors.length)],
+      end: gradientColors[random.nextInt(gradientColors.length)],
+    ).animate(_buttonController);
+  }
+
+  void _onSongChange() {
+    setState(() {
+      // Change the icon to a new random one
+      currentIcon = randomIcons[random.nextInt(randomIcons.length)];
+
+      // Reset and restart the animations with new colors
+      _setupAnimations();
+      _iconController.reset();
+      _iconController.forward();
+      _buttonController.reset();
+      _buttonController.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _iconController.dispose();
+    _buttonController.dispose();
+    super.dispose();
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.toString().padLeft(2, '0');
+    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+    return "$minutes:$seconds";
+  }
 
   @override
   Widget build(BuildContext context) {
     final controller = Get.find<PlayerController>();
 
-    // Reactive observables for icon and color
-    final currentIcon = randomIcons[random.nextInt(randomIcons.length)].obs;
-    final currentColor = randomColors[random.nextInt(randomColors.length)].obs;
-
-    // Update icon and color each time a new song starts
-    Future.delayed(Duration.zero, () async {
-      await controller.playOrStop(filePath);
-      currentIcon.value = randomIcons[random.nextInt(randomIcons.length)];
-      currentColor.value = randomColors[random.nextInt(randomColors.length)];
-    });
-
     return Scaffold(
-      backgroundColor: bgDarkColor,
+      backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
+        backgroundColor: Colors.black,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text(
+          "Now Playing",
+          style: TextStyle(
+              color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
+        ),
       ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(8.0),
+          padding: const EdgeInsets.all(16.0),
           child: Column(
             children: [
-              // Song icon with reactive updates
+              // Animated gradient circle for the icon
               Expanded(
                 flex: 2,
-                child: Obx(() {
-                  return Container(
-                    clipBehavior: Clip.antiAliasWithSaveLayer,
-                    height: 250,
-                    width: 250,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: currentColor.value,
-                    ),
-                    alignment: Alignment.center,
-                    child: Icon(
-                      currentIcon.value,
-                      size: 50,
-                      color: Colors.white,
-                    ),
-                  );
-                }),
+                child: AnimatedBuilder(
+                  animation: _iconController,
+                  builder: (context, child) {
+                    return Container(
+                      height: 250,
+                      width: 250,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: [
+                            _iconStartColor.value ?? Colors.black,
+                            _iconEndColor.value ?? Colors.black,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: (_iconStartColor.value ?? Colors.black)
+                                .withOpacity(0.5),
+                            blurRadius: 20,
+                            spreadRadius: 8,
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        currentIcon,
+                        size: 80,
+                        color: Colors.white,
+                      ),
+                    );
+                  },
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
               // Song details and controls
               Expanded(
                 flex: 3,
-                child: Container(
-                  alignment: Alignment.center,
-                  padding: const EdgeInsets.all(16),
-                  decoration: const BoxDecoration(
-                    color: Color.fromARGB(196, 85, 77, 77),
-                    borderRadius:
-                        BorderRadius.vertical(top: Radius.circular(16)),
-                  ),
+                child: SingleChildScrollView(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
@@ -114,24 +205,24 @@ class Player extends StatelessWidget {
                           controller.fileName.value,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: bgDarkColor,
+                            color: Colors.white,
                             fontSize: 24,
                           ),
                           textAlign: TextAlign.center,
                         );
                       }),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 8),
                       // Static artist name passed from home.dart
                       Text(
-                        artistName,
+                        widget.artistName,
                         style: const TextStyle(
                           fontWeight: FontWeight.normal,
-                          color: bgDarkColor,
-                          fontSize: 20,
+                          color: Colors.grey,
+                          fontSize: 18,
                         ),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 24),
                       // Reactive slider for song position and duration
                       Obx(() {
                         final position = controller.position.value;
@@ -141,14 +232,13 @@ class Player extends StatelessWidget {
                           children: [
                             Text(
                               _formatDuration(position),
-                              style: const TextStyle(color: bgDarkColor),
+                              style: const TextStyle(color: Colors.white),
                             ),
                             Expanded(
                               child: Slider(
-                                thumbColor: const Color.fromARGB(255, 0, 0, 0),
-                                inactiveColor: bgColor,
-                                activeColor:
-                                    const Color.fromARGB(255, 203, 201, 222),
+                                thumbColor: Colors.white,
+                                inactiveColor: Colors.grey[700],
+                                activeColor: Colors.blueAccent,
                                 value: position.inSeconds.toDouble(),
                                 max: duration.inSeconds.toDouble(),
                                 onChanged: (newValue) async {
@@ -160,13 +250,13 @@ class Player extends StatelessWidget {
                             ),
                             Text(
                               _formatDuration(duration),
-                              style: ourStyle(color: bgDarkColor),
+                              style: const TextStyle(color: Colors.white),
                             ),
                           ],
                         );
                       }),
-                      const SizedBox(height: 12),
-                      // Play/Pause and skip buttons
+                      const SizedBox(height: 24),
+                      // Play/Pause and skip buttons with animated gradient
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
@@ -174,22 +264,19 @@ class Player extends StatelessWidget {
                           IconButton(
                             onPressed: () async {
                               await controller.playPrevious();
-                              currentIcon.value =
-                                  randomIcons[random.nextInt(randomIcons.length)];
-                              currentColor.value =
-                                  randomColors[random.nextInt(randomColors.length)];
+                              _onSongChange();
                             },
                             icon: const Icon(
                               Icons.skip_previous_rounded,
                               size: 40,
-                              color: bgDarkColor,
+                              color: Colors.white,
                             ),
                           ),
                           // Reactive Play/Pause button
                           Obx(() {
                             return CircleAvatar(
                               radius: 35,
-                              backgroundColor: bgDarkColor,
+                              backgroundColor: Colors.grey[800],
                               child: IconButton(
                                 onPressed: () async {
                                   if (controller.isPlaying.value) {
@@ -202,7 +289,7 @@ class Player extends StatelessWidget {
                                   controller.isPlaying.value
                                       ? Icons.pause_rounded
                                       : Icons.play_arrow_rounded,
-                                  color: whiteColor,
+                                  color: Colors.white,
                                 ),
                               ),
                             );
@@ -211,15 +298,12 @@ class Player extends StatelessWidget {
                           IconButton(
                             onPressed: () async {
                               await controller.playNext();
-                              currentIcon.value =
-                                  randomIcons[random.nextInt(randomIcons.length)];
-                              currentColor.value =
-                                  randomColors[random.nextInt(randomColors.length)];
+                              _onSongChange();
                             },
                             icon: const Icon(
                               Icons.skip_next_rounded,
                               size: 40,
-                              color: bgDarkColor,
+                              color: Colors.white,
                             ),
                           ),
                         ],
@@ -233,11 +317,5 @@ class Player extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatDuration(Duration duration) {
-    final minutes = duration.inMinutes.toString().padLeft(2, '0');
-    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
-    return "$minutes:$seconds";
   }
 }
