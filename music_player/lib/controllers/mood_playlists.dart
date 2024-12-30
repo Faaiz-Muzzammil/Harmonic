@@ -60,6 +60,21 @@ class _MoodPlaylistsState extends State<MoodPlaylists> {
     }
   }
 
+  Future<void> _removeSongFromMood(String mood, int index) async {
+    setState(() {
+      moodPlaylists[mood]!.removeAt(index);
+    });
+    await _savePlaylists();
+    Get.snackbar(
+      "Song Removed",
+      "Song removed from $mood Playlist!",
+      snackPosition: SnackPosition.BOTTOM,
+      duration: const Duration(seconds: 3),
+      backgroundColor: Colors.green.withOpacity(0.8),
+      colorText: Colors.white,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -93,19 +108,7 @@ class _MoodPlaylistsState extends State<MoodPlaylists> {
                   margin: const EdgeInsets.symmetric(
                       horizontal: 16, vertical: 8),
                   elevation: 4,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(
-                        vertical: 16, horizontal: 16),
-                    leading: CircleAvatar(
-                      backgroundColor: Colors.grey[800],
-                      child: Text(
-                        mood[0],
-                        style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white),
-                      ),
-                    ),
+                  child: ExpansionTile(
                     title: Text(
                       "$mood Playlist",
                       style: const TextStyle(
@@ -125,6 +128,23 @@ class _MoodPlaylistsState extends State<MoodPlaylists> {
                       ),
                       onPressed: () => _addSongsToMood(mood),
                     ),
+                    children: songs.asMap().entries.map((entry) {
+                      final song = entry.value;
+                      final songIndex = entry.key;
+                      return ListTile(
+                        title: Text(
+                          song.split('/').last,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => _removeSongFromMood(mood, songIndex),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 );
               },

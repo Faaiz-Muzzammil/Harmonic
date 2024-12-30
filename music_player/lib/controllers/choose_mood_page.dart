@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:music_player/views/home.dart';
+import 'package:music_player/views/mood_quote_page.dart';
 
 class ChooseMoodPage extends StatelessWidget {
   final Map<String, List<String>> moodPlaylists;
@@ -61,9 +61,10 @@ class ChooseMoodPage extends StatelessWidget {
                   style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
                 onTap: () {
-                  Get.to(() => Home(
-                        selectedMood: mood,
-                        playlistSongs: songs,
+                  // Navigate to MoodQuotePage
+                  Get.to(() => MoodQuotePage(
+                        mood: mood,
+                        songs: songs,
                       ));
                 },
               ),

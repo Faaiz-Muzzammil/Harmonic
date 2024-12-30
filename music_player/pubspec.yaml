@@ -41,6 +41,7 @@ dependencies:
   just_audio: ^0.9.42
   just_audio_background: ^0.0.1-beta.14
   shared_preferences: ^2.3.4
+  google_generative_ai: ^0.4.6
 
 dev_dependencies:
   flutter_test:

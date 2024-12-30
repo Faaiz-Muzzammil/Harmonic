@@ -38,11 +38,11 @@ class _PlayerState extends State<Player> with TickerProviderStateMixin {
 
   // Mood-based gradient colors
   final Map<String, List<Color>> moodColors = {
-    "Happy": [Colors.yellow[700]!, Colors.orange[600]!, Colors.red[400]!],
-    "Sad": [Colors.blue[900]!, Colors.indigo[800]!, Colors.grey[700]!],
-    "Relaxed": [Colors.green[800]!, Colors.teal[700]!, Colors.cyan[600]!],
-    "Energetic": [Colors.red[800]!, Colors.purple[700]!, Colors.pink[600]!],
-    "Default": [Colors.grey[900]!, Colors.black87, Colors.blueGrey[700]!],
+    "Happy": [Colors.red[700]!, Colors.redAccent, Colors.deepOrange[400]!],
+    "Sad": [Colors.blue[900]!, Colors.indigo[800]!, Colors.blueGrey[700]!],
+    "Relaxed": [Colors.green[800]!, Colors.teal[600]!, Colors.cyan[400]!],
+    "Energetic": [Colors.yellow[700]!, Colors.orange[600]!, Colors.amber[500]!],
+    "Default": [Colors.grey[900]!, Colors.black87, Colors.blueGrey[800]!],
   };
 
   late AnimationController _iconController;
@@ -228,6 +228,10 @@ class _PlayerState extends State<Player> with TickerProviderStateMixin {
                         final position = controller.position.value;
                         final duration = controller.duration.value;
 
+                        // Ensure slider value stays within bounds
+                        final sliderValue = position.inSeconds.toDouble();
+                        final maxSliderValue = duration.inSeconds.toDouble();
+
                         return Row(
                           children: [
                             Text(
@@ -235,15 +239,28 @@ class _PlayerState extends State<Player> with TickerProviderStateMixin {
                               style: const TextStyle(color: Colors.white),
                             ),
                             Expanded(
-                              child: Slider(
-                                thumbColor: Colors.white,
-                                inactiveColor: Colors.grey[700],
-                                activeColor: Colors.blueAccent,
-                                value: position.inSeconds.toDouble(),
-                                max: duration.inSeconds.toDouble(),
-                                onChanged: (newValue) async {
-                                  await controller.audioPlayer.seek(
-                                    Duration(seconds: newValue.toInt()),
+                              child: AnimatedBuilder(
+                                animation: _iconController,
+                                builder: (context, child) {
+                                  return Slider(
+                                    thumbColor: Colors.white,
+                                    inactiveColor:
+                                        (_iconEndColor.value ?? Colors.grey)
+                                            .withOpacity(0.5),
+                                    activeColor: _iconStartColor.value ??
+                                        Colors.blueAccent,
+                                    value:
+                                        sliderValue.clamp(0.0, maxSliderValue),
+                                    max: maxSliderValue > 0
+                                        ? maxSliderValue
+                                        : 1.0, // Prevent divide by 0
+                                    onChanged: (newValue) async {
+                                      if (duration > Duration.zero) {
+                                        await controller.audioPlayer.seek(
+                                          Duration(seconds: newValue.toInt()),
+                                        );
+                                      }
+                                    },
                                   );
                                 },
                               ),
@@ -256,7 +273,7 @@ class _PlayerState extends State<Player> with TickerProviderStateMixin {
                         );
                       }),
                       const SizedBox(height: 24),
-                      // Play/Pause and skip buttons with animated gradient
+                      // Play/Pause and skip buttons
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
